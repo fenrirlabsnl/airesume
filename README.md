@@ -2,6 +2,8 @@
 
 A candidacy portfolio platform for software engineers who value honesty and transparency. Present your skills, experience, and realistic career expectations to employers - including what you *can't* do yet.
 
+![FenrirAI Screenshot](screenshot.png)
+
 ## Philosophy
 
 Most portfolios oversell. FenrirAI takes a different approach: **radical transparency**. It helps you present an authentic picture of your abilities, skill gaps, and career preferences. The result? Better job fits and employers who appreciate honesty.
@@ -17,6 +19,8 @@ Most portfolios oversell. FenrirAI takes a different approach: **radical transpa
   - **Growth** (1-4): Learning or want to learn
 - **AI Chat** - "Ask AI About Me" answers tough interview questions based on your self-reported data
 - **JD Analyzer** - Paste a job description, get an honest fit assessment with strengths and gaps
+
+![JD Analyzer Results](jd-analyzer-results.png)
 
 ### Admin Panel
 Full content management for your portfolio:
@@ -112,6 +116,10 @@ Configured for Vercel in `vercel.json`:
 - Build command: `bun run build`
 - Output: `dist/`
 - SPA rewrites enabled for client-side routing
+
+## Acknowledgments
+
+This template is based on the original work by [Nate B. Jones](https://www.natebjones.com/). Thank you for providing the foundation that made this project possible.
 
 ## License
 
