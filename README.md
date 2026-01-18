@@ -1,4 +1,4 @@
-# FenrirAI
+# AI Resume
 
 A candidacy portfolio platform for software engineers who value honesty and transparency. Present your skills, experience, and realistic career expectations to employers - including what you *can't* do yet.
 
