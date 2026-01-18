@@ -1,4 +1,4 @@
-# FenrirAI Portfolio - Engineering Principles
+# AI Resume - Engineering Principles
 
 ## Core Philosophy
 
