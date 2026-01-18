@@ -38,13 +38,14 @@ export function useProfile() {
       const { data, error } = await supabase
         .from('candidate_profile')
         .select('*')
-        .single()
+        .maybeSingle()
 
       if (error) {
         console.error('Error fetching profile:', error)
         return null
       }
 
+      // Return null if no profile exists yet (will trigger create on first save)
       return data
     },
   })
@@ -54,18 +55,17 @@ export function useUpdateProfile() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (updates: Partial<CandidateProfile> & { id: string }) => {
+    mutationFn: async (updates: Partial<CandidateProfile> & { id?: string }) => {
       if (isMissingCredentials) {
         // In demo mode, just return the updates merged with placeholder
         return { ...placeholderProfile, ...updates }
       }
 
-      const { id, ...updateData } = updates
+      // Use upsert to create or update the profile
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from('candidate_profile')
-        .update(updateData)
-        .eq('id', id)
+        .upsert(updates, { onConflict: 'id' })
         .select()
         .single()
 

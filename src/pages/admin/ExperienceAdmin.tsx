@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { useExperiences, useCreateExperience, useUpdateExperience, useDeleteExperience } from '@/hooks/useExperiences'
 import type { Experience } from '@/types/database'
 
 const experienceSchema = z.object({
@@ -31,35 +32,12 @@ const experienceSchema = z.object({
 
 type ExperienceForm = z.infer<typeof experienceSchema>
 
-// Placeholder data
-const initialExperiences: Experience[] = [
-  {
-    id: '1',
-    company_name: 'Current Company',
-    title: 'Senior Software Engineer',
-    title_progression: null,
-    start_date: '2022-06-01',
-    end_date: null,
-    is_current: true,
-    bullet_points: ['Led migration', 'Mentored engineers', 'Reduced deploy time'],
-    why_joined: 'Great team and interesting problems',
-    why_left: null,
-    actual_contributions: 'Backend work on payments',
-    proudest_achievement: 'Real-time notification system',
-    would_do_differently: 'Better documentation',
-    challenges_faced: 'Minimal tests in codebase',
-    lessons_learned: 'Incremental improvements over rewrites',
-    manager_would_say: 'Reliable, good judgment',
-    reports_would_say: null,
-    quantified_impact: null,
-    display_order: 1,
-    created_at: '',
-    updated_at: '',
-  },
-]
-
 export default function ExperienceAdmin() {
-  const [experiences, setExperiences] = useState<Experience[]>(initialExperiences)
+  const { data: experiences = [], isLoading } = useExperiences()
+  const createExperience = useCreateExperience()
+  const updateExperience = useUpdateExperience()
+  const deleteExperienceMutation = useDeleteExperience()
+
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
@@ -122,10 +100,7 @@ export default function ExperienceAdmin() {
   }
 
   const onSubmit = async (data: ExperienceForm) => {
-    await new Promise(resolve => setTimeout(resolve, 500))
-
-    const experienceData: Experience = {
-      id: editingId || Date.now().toString(),
+    const experienceData = {
       company_name: data.company_name,
       title: data.title,
       title_progression: null,
@@ -144,23 +119,29 @@ export default function ExperienceAdmin() {
       reports_would_say: null,
       quantified_impact: null,
       display_order: experiences.length + 1,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     }
 
     if (editingId) {
-      setExperiences(prev => prev.map(e => e.id === editingId ? experienceData : e))
+      await updateExperience.mutateAsync({ id: editingId, ...experienceData })
     } else {
-      setExperiences(prev => [...prev, experienceData])
+      await createExperience.mutateAsync(experienceData)
     }
 
     setIsDialogOpen(false)
   }
 
-  const deleteExperience = (id: string) => {
+  const handleDeleteExperience = async (id: string) => {
     if (confirm('Delete this experience?')) {
-      setExperiences(prev => prev.filter(e => e.id !== id))
+      await deleteExperienceMutation.mutateAsync(id)
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="size-8 animate-spin text-muted-foreground" />
+      </div>
+    )
   }
 
   return (
@@ -194,7 +175,7 @@ export default function ExperienceAdmin() {
                 <Button variant="ghost" size="icon" onClick={() => openEditDialog(exp)}>
                   <Pencil className="size-4" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => deleteExperience(exp.id)}>
+                <Button variant="ghost" size="icon" onClick={() => handleDeleteExperience(exp.id)}>
                   <Trash2 className="size-4 text-destructive" />
                 </Button>
               </div>

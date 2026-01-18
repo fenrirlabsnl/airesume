@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -7,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useProfile, useUpdateProfile } from '@/hooks/useProfile'
 
 const profileSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -26,38 +28,74 @@ const profileSchema = z.object({
 
 type ProfileForm = z.infer<typeof profileSchema>
 
-// Placeholder data - will be replaced with Supabase fetch
-const placeholderProfile: ProfileForm = {
-  name: 'Blaine Holt',
-  email: 'blaine@example.com',
-  title: 'Senior Product Manager',
-  elevator_pitch: 'I ship products that solve real problems. Brutally honest about what I can and cannot do.',
-  career_narrative: 'Started in customer success, transitioned to PM by being the person who always knew what customers needed.',
-  looking_for: 'Strong product culture, clear business metrics, engineers who want a PM partner',
-  not_looking_for: 'Feature factories, PM as project management, shipping by committee',
-  location: 'San Francisco, CA',
-  remote_preference: 'hybrid',
-  availability_status: 'actively_looking',
-  github_url: '',
-  linkedin_url: 'https://linkedin.com/in/blaineholt',
-  twitter_url: '',
-}
-
 export default function ProfileAdmin() {
+  const { data: profile, isLoading } = useProfile()
+  const updateProfile = useUpdateProfile()
+
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors, isSubmitting, isDirty },
   } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
-    defaultValues: placeholderProfile,
+    defaultValues: {
+      name: '',
+      email: '',
+      title: '',
+      elevator_pitch: '',
+      career_narrative: '',
+      looking_for: '',
+      not_looking_for: '',
+      location: '',
+      remote_preference: 'flexible',
+      availability_status: 'open',
+      github_url: '',
+      linkedin_url: '',
+      twitter_url: '',
+    },
   })
 
+  // Populate form when profile data loads
+  useEffect(() => {
+    if (profile) {
+      reset({
+        name: profile.name || '',
+        email: profile.email || '',
+        title: profile.title || '',
+        elevator_pitch: profile.elevator_pitch || '',
+        career_narrative: profile.career_narrative || '',
+        looking_for: profile.looking_for || '',
+        not_looking_for: profile.not_looking_for || '',
+        location: profile.location || '',
+        remote_preference: profile.remote_preference || 'flexible',
+        availability_status: profile.availability_status || 'open',
+        github_url: profile.github_url || '',
+        linkedin_url: profile.linkedin_url || '',
+        twitter_url: profile.twitter_url || '',
+      })
+    }
+  }, [profile, reset])
+
   const onSubmit = async (data: ProfileForm) => {
-    // Will be replaced with Supabase update
-    console.log('Saving profile:', data)
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    alert('Profile saved! (Demo mode - not persisted)')
+    // Use existing ID or generate a new UUID for first-time creation
+    const id = profile?.id || crypto.randomUUID()
+
+    await updateProfile.mutateAsync({
+      id,
+      ...data,
+      github_url: data.github_url || null,
+      linkedin_url: data.linkedin_url || null,
+      twitter_url: data.twitter_url || null,
+    })
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="size-8 animate-spin text-muted-foreground" />
+      </div>
+    )
   }
 
   return (

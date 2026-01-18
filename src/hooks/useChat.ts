@@ -83,7 +83,7 @@ export function useChat(options: UseChatOptions = {}) {
         id: `ai_${Date.now()}`,
         session_id: sessionId,
         role: 'assistant',
-        content: data.response,
+        content: data.message,
         created_at: new Date().toISOString(),
       }
       setMessages(prev => [...prev, aiMessage])

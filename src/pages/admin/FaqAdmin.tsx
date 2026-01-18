@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { useFaqs, useCreateFaq, useUpdateFaq, useDeleteFaq } from '@/hooks/useFaqs'
 import type { FaqResponse } from '@/types/database'
 
 const faqSchema = z.object({
@@ -20,36 +21,12 @@ const faqSchema = z.object({
 
 type FaqForm = z.infer<typeof faqSchema>
 
-// Placeholder data
-const initialFaqs: FaqResponse[] = [
-  {
-    id: '1',
-    question: 'What are your salary expectations?',
-    answer: 'I\'m looking for $150k-$180k base, depending on total comp. I\'m flexible for exceptional opportunities but won\'t waste your time if we\'re not in the same ballpark.',
-    is_common_question: true,
-    created_at: '',
-    updated_at: '',
-  },
-  {
-    id: '2',
-    question: 'Why did you leave your last job?',
-    answer: 'The company was running low on runway. I left on good terms before layoffs. I could have stayed longer but prioritized stability.',
-    is_common_question: true,
-    created_at: '',
-    updated_at: '',
-  },
-  {
-    id: '3',
-    question: 'Are you willing to relocate?',
-    answer: 'I prefer remote or hybrid, but I\'m open to relocating for the right opportunity. Bay Area, NYC, or Seattle would work.',
-    is_common_question: false,
-    created_at: '',
-    updated_at: '',
-  },
-]
-
 export default function FaqAdmin() {
-  const [faqs, setFaqs] = useState<FaqResponse[]>(initialFaqs)
+  const { data: faqs = [], isLoading } = useFaqs()
+  const createFaq = useCreateFaq()
+  const updateFaq = useUpdateFaq()
+  const deleteFaqMutation = useDeleteFaq()
+
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
@@ -83,34 +60,37 @@ export default function FaqAdmin() {
   }
 
   const onSubmit = async (data: FaqForm) => {
-    await new Promise(resolve => setTimeout(resolve, 500))
-
-    const faqData: FaqResponse = {
-      id: editingId || Date.now().toString(),
+    const faqData = {
       question: data.question,
       answer: data.answer,
       is_common_question: data.is_common_question,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     }
 
     if (editingId) {
-      setFaqs(prev => prev.map(f => f.id === editingId ? faqData : f))
+      await updateFaq.mutateAsync({ id: editingId, ...faqData })
     } else {
-      setFaqs(prev => [...prev, faqData])
+      await createFaq.mutateAsync(faqData)
     }
 
     setIsDialogOpen(false)
   }
 
-  const deleteFaq = (id: string) => {
+  const handleDeleteFaq = async (id: string) => {
     if (confirm('Delete this FAQ?')) {
-      setFaqs(prev => prev.filter(f => f.id !== id))
+      await deleteFaqMutation.mutateAsync(id)
     }
   }
 
   const commonFaqs = faqs.filter(f => f.is_common_question)
   const otherFaqs = faqs.filter(f => !f.is_common_question)
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="size-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -135,7 +115,7 @@ export default function FaqAdmin() {
             Common Questions
           </h2>
           {commonFaqs.map((faq) => (
-            <FaqCard key={faq.id} faq={faq} onEdit={openEditDialog} onDelete={deleteFaq} />
+            <FaqCard key={faq.id} faq={faq} onEdit={openEditDialog} onDelete={handleDeleteFaq} />
           ))}
         </div>
       )}
@@ -145,7 +125,7 @@ export default function FaqAdmin() {
         <div className="space-y-4">
           <h2 className="font-medium">Other Questions</h2>
           {otherFaqs.map((faq) => (
-            <FaqCard key={faq.id} faq={faq} onEdit={openEditDialog} onDelete={deleteFaq} />
+            <FaqCard key={faq.id} faq={faq} onEdit={openEditDialog} onDelete={handleDeleteFaq} />
           ))}
         </div>
       )}

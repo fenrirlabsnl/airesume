@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { useSkills, useCreateSkill, useUpdateSkill, useDeleteSkill } from '@/hooks/useSkills'
 import type { Skill } from '@/types/database'
 
 const skillSchema = z.object({
@@ -37,16 +38,12 @@ const strengthConfig = {
   growth: { label: 'Growth', icon: Sprout, variant: 'secondary' as const, color: 'text-blue-400' },
 }
 
-// Placeholder data
-const initialSkills: Skill[] = [
-  { id: '1', skill_name: 'Product Strategy', category: 'Product', self_rating: 9, evidence: '$50M+ ARR products', honest_notes: 'Best in B2C consumer', years_experience: 5, last_used: null, created_at: '', updated_at: '' },
-  { id: '2', skill_name: 'User Research', category: 'Research', self_rating: 8, evidence: '200+ interviews', honest_notes: 'Sometimes over-index on qualitative', years_experience: 6, last_used: null, created_at: '', updated_at: '' },
-  { id: '3', skill_name: 'SQL', category: 'Technical', self_rating: 6, evidence: 'Basic queries, joins', honest_notes: 'Call data team for complex work', years_experience: 3, last_used: null, created_at: '', updated_at: '' },
-  { id: '4', skill_name: 'Public Speaking', category: 'Leadership', self_rating: 4, evidence: 'Team meetings only', honest_notes: 'Working on this', years_experience: 2, last_used: null, created_at: '', updated_at: '' },
-]
-
 export default function SkillsAdmin() {
-  const [skills, setSkills] = useState<Skill[]>(initialSkills)
+  const { data: skills = [], isLoading } = useSkills()
+  const createSkill = useCreateSkill()
+  const updateSkill = useUpdateSkill()
+  const deleteSkillMutation = useDeleteSkill()
+
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
@@ -86,33 +83,28 @@ export default function SkillsAdmin() {
   }
 
   const onSubmit = async (data: SkillForm) => {
-    await new Promise(resolve => setTimeout(resolve, 500))
-
-    const skillData: Skill = {
-      id: editingId || Date.now().toString(),
+    const skillData = {
       skill_name: data.skill_name,
       category: data.category,
       self_rating: data.self_rating,
       evidence: data.evidence || null,
       honest_notes: data.honest_notes || null,
       years_experience: data.years_experience || null,
-      last_used: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      last_used: new Date().toISOString(),
     }
 
     if (editingId) {
-      setSkills(prev => prev.map(s => s.id === editingId ? skillData : s))
+      await updateSkill.mutateAsync({ id: editingId, ...skillData })
     } else {
-      setSkills(prev => [...prev, skillData])
+      await createSkill.mutateAsync(skillData)
     }
 
     setIsDialogOpen(false)
   }
 
-  const deleteSkill = (id: string) => {
+  const handleDeleteSkill = async (id: string) => {
     if (confirm('Delete this skill?')) {
-      setSkills(prev => prev.filter(s => s.id !== id))
+      await deleteSkillMutation.mutateAsync(id)
     }
   }
 
@@ -121,6 +113,14 @@ export default function SkillsAdmin() {
     strong: skills.filter(s => getStrengthLevel(s.self_rating) === 'strong'),
     moderate: skills.filter(s => getStrengthLevel(s.self_rating) === 'moderate'),
     growth: skills.filter(s => getStrengthLevel(s.self_rating) === 'growth'),
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="size-8 animate-spin text-muted-foreground" />
+      </div>
+    )
   }
 
   return (
@@ -171,7 +171,7 @@ export default function SkillsAdmin() {
                       <Button variant="ghost" size="icon" className="size-7" onClick={() => openEditDialog(skill)}>
                         <Pencil className="size-3" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="size-7" onClick={() => deleteSkill(skill.id)}>
+                      <Button variant="ghost" size="icon" className="size-7" onClick={() => handleDeleteSkill(skill.id)}>
                         <Trash2 className="size-3 text-destructive" />
                       </Button>
                     </div>
@@ -222,6 +222,13 @@ export default function SkillsAdmin() {
                   <option value="API">API</option>
                   <option value="AI">AI/ML</option>
                   <option value="Tool">Tool</option>
+                  <option value="Product">Product</option>
+                  <option value="Research">Research</option>
+                  <option value="Leadership">Leadership</option>
+                  <option value="Analytics">Analytics</option>
+                  <option value="Technical">Technical</option>
+                  <option value="Process">Process</option>
+                  <option value="Business">Business</option>
                   <option value="Other">Other</option>
                 </select>
               </div>

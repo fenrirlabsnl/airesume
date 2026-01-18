@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { useGaps, useCreateGap, useUpdateGap, useDeleteGap } from '@/hooks/useGaps'
 import type { GapWeakness } from '@/types/database'
 
 const gapSchema = z.object({
@@ -21,39 +22,12 @@ const gapSchema = z.object({
 
 type GapForm = z.infer<typeof gapSchema>
 
-// Placeholder data
-const initialGaps: GapWeakness[] = [
-  {
-    id: '1',
-    gap_type: 'Technical',
-    description: 'Limited experience with Kubernetes at scale',
-    why_its_a_gap: 'Used Docker extensively but K8s only in small deployments',
-    interest_in_learning: true,
-    created_at: '',
-    updated_at: '',
-  },
-  {
-    id: '2',
-    gap_type: 'Soft Skill',
-    description: 'Public speaking and large presentations',
-    why_its_a_gap: 'Comfortable in small groups but nervous with large audiences',
-    interest_in_learning: true,
-    created_at: '',
-    updated_at: '',
-  },
-  {
-    id: '3',
-    gap_type: 'Domain',
-    description: 'Machine Learning / AI',
-    why_its_a_gap: 'Conceptual understanding only, no production ML experience',
-    interest_in_learning: true,
-    created_at: '',
-    updated_at: '',
-  },
-]
-
 export default function GapsAdmin() {
-  const [gaps, setGaps] = useState<GapWeakness[]>(initialGaps)
+  const { data: gaps = [], isLoading } = useGaps()
+  const createGap = useCreateGap()
+  const updateGap = useUpdateGap()
+  const deleteGapMutation = useDeleteGap()
+
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
@@ -89,31 +63,34 @@ export default function GapsAdmin() {
   }
 
   const onSubmit = async (data: GapForm) => {
-    await new Promise(resolve => setTimeout(resolve, 500))
-
-    const gapData: GapWeakness = {
-      id: editingId || Date.now().toString(),
+    const gapData = {
       gap_type: data.gap_type,
       description: data.description,
       why_its_a_gap: data.why_its_a_gap || null,
       interest_in_learning: data.interest_in_learning,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     }
 
     if (editingId) {
-      setGaps(prev => prev.map(g => g.id === editingId ? gapData : g))
+      await updateGap.mutateAsync({ id: editingId, ...gapData })
     } else {
-      setGaps(prev => [...prev, gapData])
+      await createGap.mutateAsync(gapData)
     }
 
     setIsDialogOpen(false)
   }
 
-  const deleteGap = (id: string) => {
+  const handleDeleteGap = async (id: string) => {
     if (confirm('Delete this gap?')) {
-      setGaps(prev => prev.filter(g => g.id !== id))
+      await deleteGapMutation.mutateAsync(id)
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="size-8 animate-spin text-muted-foreground" />
+      </div>
+    )
   }
 
   return (
@@ -165,7 +142,7 @@ export default function GapsAdmin() {
                 <Button variant="ghost" size="icon" onClick={() => openEditDialog(gap)}>
                   <Pencil className="size-4" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => deleteGap(gap.id)}>
+                <Button variant="ghost" size="icon" onClick={() => handleDeleteGap(gap.id)}>
                   <Trash2 className="size-4 text-destructive" />
                 </Button>
               </div>
